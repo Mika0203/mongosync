@@ -27,12 +27,24 @@ interface Types {
   dbName: string;
 
   /**
+   * An optional name for the destination database.
+   * If not provided, the same database name as `dbName` will be used.
+   */
+  destinationDbName?: string;
+
+  /**
    * An optional array of collection names to sync. If not provided, all collections will be synced.
    */
   collections?: string[];
 }
 
-export async function sync({ from, to, dbName, collections = [] }: Types) {
+export async function sync({
+  from,
+  to,
+  dbName,
+  destinationDbName,
+  collections = [],
+}: Types) {
   const fromServer = new MongoClient(from.url, from.mongoOptions);
   const toServer = new MongoClient(to.url, to.mongoOptions);
   await fromServer.connect();
@@ -40,7 +52,7 @@ export async function sync({ from, to, dbName, collections = [] }: Types) {
   console.log("Connected to both MongoDB servers");
 
   const fromDb = fromServer.db(dbName);
-  const toDb = toServer.db(dbName); // Use the same dbName as fromDb
+  const toDb = toServer.db(destinationDbName || dbName);
 
   const collectionNames = (await fromDb.listCollections().toArray()).filter(
     (name) =>
