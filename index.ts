@@ -77,8 +77,25 @@ export async function sync({
     }
 
     const toCollection = toDb.collection(collection.name);
-    const documents = await fromCollection.find().toArray();
-    if (documents.length !== 0) await toCollection.insertMany(documents);
+    const count = await fromCollection.countDocuments();
+    let maxCount = count;
+    const cursor = fromCollection.find({});
+    const batchSize = 1000;
+    let batch: any[] = [];
+
+    for await (const doc of cursor) {
+      batch.push(doc);
+      if (batch.length === batchSize) {
+        maxCount -= batch.length;
+        console.log(`[${collection.name}] remaining : ${maxCount}`);
+        await toCollection.insertMany(batch);
+        batch = [];
+      }
+    }
+
+    if (batch.length > 0) {
+      await toCollection.insertMany(batch);
+    }
 
     console.log(`Synced collection: [${collection.name}]`);
   }
